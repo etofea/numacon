@@ -335,7 +335,7 @@ function renderNotices() {
     if (homeList) {
         homeList.replaceChildren();
 
-        notices.slice(0, 4).forEach(notice => {
+        notices.slice(0, 3).forEach(notice => {
             homeList.appendChild(
                 createNoticeItem(notice)
             );
