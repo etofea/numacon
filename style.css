@@ -1,0 +1,943 @@
+
+/* =========================================================
+   ぬまコン CSS
+   ページ全体・ホーム画面・検索画面・回覧板・管理者画面
+   色関係は改善の余地あり
+========================================================= */
+
+
+/* =========================================================
+   ① 全体の基本設定
+   すべての要素に共通する設定
+========================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    /* ↓ フォントを丸ゴシックに変更 */
+    font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+    background-color: #ffffff;
+    color: #000000;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 768px;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* =========================================================
+   ② ホーム画面
+   ロゴ・町名・案内文の配置
+========================================================= */
+
+#homeScreen {
+    display: flex;
+    flex-direction: column;
+    gap: 35px;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px; /* 文字と画像の隙間を極限まで狭くする */
+}
+
+/* ※もしHTMLが以前のままで .logo-text がある場合は、ここで非表示にして横並びを防ぎます */
+.logo-text {
+    display: none;
+}
+
+.town-name {
+    font-size: 32px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.logo-img {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    /* ↓ 画像自身の透明な余白を無視して、文字を画像に近づける */
+    margin: 0 -20px; 
+}
+
+.sub-title {
+    font-size: 22px;
+    font-weight: 700; /* 丸ゴシックに合わせて太さを調整 */
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.instructions {
+    font-size: 32px; /* 大きく */
+    font-weight: bold;
+    line-height: 1.6;
+    padding-left: 15px;
+    margin-top: -10px; /* 少し上に詰める */
+}
+
+
+/* =========================================================
+   ③ 検索ボタン
+   音声検索・テキスト検索
+========================================================= */
+
+.search-buttons {
+    display: flex;
+    gap: 25px;
+    justify-content: space-between;
+}
+
+.btn {
+    
+    flex: 1;
+    aspect-ratio: 1 / 1.15;
+    border: none; /* 枠線をなくしてパステル感を強調 */
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+/* カーソルが上に乗ったとき（にゅっと大きくなる） */
+.btn:hover {
+    transform: scale(1.05);
+}
+
+/* クリック（タップ）して押し込んだとき（少し沈む） */
+.btn:active {
+    transform: scale(0.95);
+}
+.voice-btn { background-color: #ffe3f0; }
+.text-btn { background-color: #d1f7f9; }
+
+.icon-mic {
+    font-size: 180px !important; /* マイクをさらに特大に */
+    margin-bottom: 10px;
+}
+
+.icon-text {
+    font-size: 150px !important; /* テキストアイコンを特大に */
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 20px;
+}
+
+.btn span {
+    font-size: 40px; /* ボタンの文字を大きく */
+    font-weight: bold;
+}
+
+
+/* =========================================================
+   ④ 回覧板・お知らせ一覧
+   ホーム画面と一覧画面で共通使用
+========================================================= */
+
+.notice-board h2 {
+    text-align: center;
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+.notice-list {
+    border: 5px solid #000000;
+    border-bottom: none;
+    background-color: #ffffff;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.notice-item {
+    border-bottom: 5px solid #000000;
+    min-height: 90px;
+    padding: 18px;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.notice-title {
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.badge {
+    flex-shrink: 0;
+
+    border: 3px solid #000000;
+    padding: 8px 14px;
+
+    display: inline-block;
+
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.notice-bottom {
+    border-left: 5px solid #000000;
+    border-right: 5px solid #000000;
+    border-bottom: 5px solid #000000;
+
+    background-color: #ffffff;
+    text-align: right;
+
+    padding: 15px 20px;
+}
+
+.notice-bottom a {
+    color: #000000;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 28px;
+
+    display: inline-block;
+    padding: 12px;
+}
+
+
+/* =========================================================
+   ⑤ クリック・タップ時の反応
+========================================================= */
+
+.clickable {
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.clickable:hover {
+    transform: scale(1.01);
+    background-color: #f5f5f5;
+}
+
+.clickable:active {
+    transform: scale(0.98);
+    background-color: #e0e0e0;
+}
+
+
+/* =========================================================
+   ⑥ サブ画面の共通デザイン
+   音声検索・文字検索・回覧板・管理者画面
+========================================================= */
+
+.chat-screen,
+.sub-screen {
+    flex-direction: column;
+
+    width: 100%;
+    height: 85vh;
+    min-height: 400px;
+
+    border: 5px solid #000000;
+    border-radius: 20px;
+
+    background-color: #f9f9f9;
+    overflow: hidden;
+}
+
+.chat-header {
+    flex-shrink: 0;
+
+    background-color: #1a75d2;
+    color: #ffffff;
+
+    padding: 15px 20px;
+
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.chat-header h2 {
+    font-size: 26px;
+    line-height: 1.4;
+}
+
+.back-btn {
+    flex-shrink: 0;
+
+    background: none;
+    border: none;
+    color: #ffffff;
+
+    font-size: 26px;
+    font-weight: bold;
+
+    cursor: pointer;
+    padding: 12px;
+}
+
+.chat-area,
+.content-area {
+    flex: 1;
+    min-height: 0;
+
+    padding: 20px;
+    overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+/* =========================================================
+   ⑦ 回覧板詳細画面
+   タイトル・本文・写真
+========================================================= */
+
+.detail-area {
+    background-color: #ffffff;
+}
+
+.detail-area h3 {
+    font-size: 34px;
+    line-height: 1.7;
+
+    border-bottom: 3px solid #000000;
+    padding-bottom: 15px;
+
+    overflow-wrap: anywhere;
+}
+
+.detail-text {
+    font-size: 28px;
+    line-height: 2;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.detail-photo-area {
+    margin-top: 20px;
+}
+
+#detailPhoto {
+    display: block;
+
+    width: 100%;
+    max-height: 500px;
+
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+
+/* =========================================================
+   ⑧ チャットの吹き出し
+========================================================= */
+
+.chat-bubble {
+    max-width: 80%;
+
+    padding: 20px;
+    border-radius: 20px;
+    border: 4px solid #000000;
+
+    font-size: 26px;
+    font-weight: bold;
+    line-height: 1.8;
+
+    overflow-wrap: anywhere;
+}
+
+.ai {
+    background-color: #ffffff;
+    align-self: flex-start;
+    border-top-left-radius: 5px;
+}
+
+.user {
+    background-color: #d1f7f9;
+    align-self: flex-end;
+    border-top-right-radius: 5px;
+}
+
+
+/* =========================================================
+   ⑨ 音声入力エリア
+========================================================= */
+
+.chat-input-area {
+    flex-shrink: 0;
+
+    padding: 25px;
+
+    background-color: #ffffff;
+    border-top: 5px solid #000000;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.chat-input-area p {
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.mic-button-active {
+    background-color: #ffe3f0;
+    border: 4px solid #000000;
+    border-radius: 50%;
+
+    width: 90px;
+    height: 90px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    animation: pulse 1.5s infinite;
+}
+
+.mic-button-active span {
+    font-size: 50px;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(0.95);
+    }
+}
+
+
+/* =========================================================
+   ⑩ テキスト入力エリア
+========================================================= */
+
+.text-input-area {
+    flex-shrink: 0;
+
+    padding: 20px;
+
+    background-color: #ffffff;
+    border-top: 5px solid #000000;
+
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+#chatInput {
+    flex: 1;
+    min-width: 0;
+
+    font-size: 24px;
+    padding: 15px 20px;
+
+    border: 4px solid #000000;
+    border-radius: 15px;
+
+    outline: none;
+}
+
+#chatInput:focus {
+    border-color: #1a75d2;
+}
+
+#sendBtn {
+    flex-shrink: 0;
+
+    background-color: #1a75d2;
+    color: #ffffff;
+
+    border: none;
+    border-radius: 15px;
+
+    width: 70px;
+    height: 70px;
+    min-width: 70px;
+    min-height: 70px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+}
+
+#sendBtn:active {
+    transform: scale(0.95);
+}
+
+#sendBtn span {
+    font-size: 40px;
+}
+
+
+/* =========================================================
+   ⑪ 管理者画面への入口
+========================================================= */
+
+.admin-entry {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 20px;
+}
+
+#adminScreenBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    min-height: 56px;
+    padding: 12px 24px;
+
+    border: 2px solid #000000;
+    border-radius: 12px;
+
+    background-color: #ffffff;
+    color: #000000;
+
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+#adminScreenBtn span {
+    font-size: 28px;
+}
+
+#adminScreenBtn:hover {
+    background-color: #f0f0f0;
+}
+
+#adminScreenBtn:active {
+    background-color: #e0e0e0;
+    transform: scale(0.98);
+}
+
+
+/* =========================================================
+   ⑫ 管理者画面
+   回覧板の登録・編集・削除
+========================================================= */
+
+.admin-content {
+    gap: 18px;
+    background-color: #ffffff;
+}
+
+.admin-content h3 {
+    font-size: 26px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.admin-content label {
+    display: block;
+    margin-top: 8px;
+
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.admin-content input[type="text"],
+.admin-content select,
+.admin-content textarea {
+    width: 100%;
+    min-height: 54px;
+
+    padding: 12px;
+
+    border: 2px solid #555555;
+    border-radius: 8px;
+
+    background-color: #ffffff;
+    color: #000000;
+
+    font-family: inherit;
+    font-size: 20px;
+}
+
+.admin-content textarea {
+    min-height: 160px;
+    resize: vertical;
+    line-height: 1.7;
+}
+
+.admin-content input[type="file"] {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 18px;
+}
+
+.admin-content input:focus,
+.admin-content select:focus,
+.admin-content textarea:focus {
+    outline: 3px solid #1a75d2;
+    outline-offset: 2px;
+}
+
+.admin-help {
+    color: #444444;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   ⑬ 管理者画面の登録・編集ボタン
+========================================================= */
+
+.admin-form-buttons,
+.admin-card-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.admin-form-buttons button,
+.admin-card-buttons button,
+#removePhotoBtn {
+    min-height: 52px;
+    padding: 10px 18px;
+
+    border: 2px solid #000000;
+    border-radius: 10px;
+
+    background-color: #ffffff;
+    color: #000000;
+
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.admin-form-buttons button:hover,
+.admin-card-buttons button:hover,
+#removePhotoBtn:hover {
+    background-color: #f0f0f0;
+}
+
+#saveNoticeBtn {
+    background-color: #d1f7f9;
+}
+
+#saveNoticeBtn:hover {
+    background-color: #b5ecef;
+}
+
+#cancelEditBtn {
+    background-color: #f0f0f0;
+}
+
+.delete-button {
+    background-color: #ffe3e3 !important;
+}
+
+.delete-button:hover {
+    background-color: #ffcaca !important;
+}
+
+
+/* =========================================================
+   ⑭ 写真のプレビュー
+========================================================= */
+
+.photo-preview-area {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    margin-top: 10px;
+}
+
+#photoPreview {
+    display: block;
+
+    max-width: 100%;
+    max-height: 300px;
+
+    object-fit: contain;
+
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+}
+
+
+/* =========================================================
+   ⑮ 登録済み回覧板の管理一覧
+========================================================= */
+
+.admin-notice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-notice-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    padding: 16px;
+
+    border: 2px solid #777777;
+    border-radius: 12px;
+
+    background-color: #ffffff;
+}
+
+.admin-notice-card h4 {
+    font-size: 22px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.admin-card-buttons button {
+    flex: 1;
+}
+
+.empty-message {
+    padding: 20px;
+    font-size: 20px;
+    line-height: 1.7;
+}
+
+
+/* =========================================================
+   ⑯ 回覧板の操作性・フォーカス表示
+========================================================= */
+
+button,
+a,
+.clickable {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+.clickable:focus-visible {
+    outline: 3px solid #1a75d2;
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   ⑰ タブレット・小さな画面での表示調整
+========================================================= */
+
+@media (max-width: 600px) {
+
+    body {
+        padding: 15px 10px;
+    }
+
+    #homeScreen {
+        gap: 24px;
+    }
+
+    .logo-area {
+        gap: 10px;
+    }
+
+    .town-name {
+        font-size: 20px;
+    }
+
+    .logo-img {
+        max-width: 180px;
+    }
+
+    .sub-title {
+        font-size: 14px;
+    }
+
+    .instructions {
+        font-size: 20px;
+        padding-left: 5px;
+    }
+
+    .search-buttons {
+        gap: 12px;
+    }
+
+    .btn {
+        border-width: 2px;
+        border-radius: 14px;
+    }
+
+    .icon-mic {
+        font-size: 76px !important;
+    }
+
+    .icon-text {
+        font-size: 68px;
+        margin-bottom: 12px;
+    }
+
+    .btn span {
+        font-size: 18px;
+    }
+
+    .notice-board h2 {
+        font-size: 30px;
+    }
+
+    .notice-item {
+        min-height: 70px;
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .notice-title {
+        font-size: 18px;
+    }
+
+    .badge {
+        padding: 6px 8px;
+        border-width: 2px;
+        font-size: 14px;
+    }
+
+    .notice-bottom a {
+        font-size: 20px;
+    }
+
+    .chat-screen,
+    .sub-screen {
+        height: 85vh;
+        min-height: 350px;
+        border-width: 3px;
+        border-radius: 14px;
+    }
+
+    .chat-header {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .chat-header h2 {
+        font-size: 20px;
+    }
+
+    .back-btn {
+        font-size: 18px;
+        padding: 8px;
+    }
+
+    .chat-area,
+    .content-area {
+        padding: 12px;
+        gap: 14px;
+    }
+
+    .detail-area h3 {
+        font-size: 25px;
+    }
+
+    .detail-text {
+        font-size: 20px;
+        line-height: 1.8;
+    }
+
+    .chat-bubble {
+        max-width: 90%;
+        padding: 14px;
+        font-size: 19px;
+        border-width: 2px;
+    }
+
+    .chat-input-area {
+        padding: 15px;
+    }
+
+    .chat-input-area p {
+        font-size: 17px;
+    }
+
+    .text-input-area {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    #chatInput {
+        font-size: 18px;
+        padding: 12px;
+        border-width: 2px;
+    }
+
+    #sendBtn {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        min-height: 54px;
+    }
+
+    #sendBtn span {
+        font-size: 30px;
+    }
+
+    #adminScreenBtn {
+        width: 100%;
+        font-size: 18px;
+    }
+
+    .admin-content {
+        padding: 14px;
+        gap: 14px;
+    }
+
+    .admin-content h3 {
+        font-size: 22px;
+    }
+
+    .admin-content label {
+        font-size: 18px;
+    }
+
+    .admin-content input[type="text"],
+    .admin-content select,
+    .admin-content textarea {
+        font-size: 18px;
+    }
+
+    .admin-form-buttons button,
+    .admin-card-buttons button {
+        flex: 1 1 100%;
+    }
+
+    .admin-notice-card h4 {
+        font-size: 19px;
+    }
+
+}

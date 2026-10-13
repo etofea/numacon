@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <!-- =====================================================
+         ぬまコン HTML
+         沼田町の行政情報を分かりやすく届けるWebサイト
+         AIに読み込ませて見やすくしているはずです：：
+
+         【主な構成】
+         ① ページの基本設定
+         ② 外部フォントの読み込み
+         ③ CSSファイルの読み込み
+         ④ ホーム画面
+         ⑤ 音声検索画面
+         ⑥ テキスト検索画面
+         ⑦ 回覧板一覧画面
+         ⑧ 回覧板詳細画面
+         ⑨ 管理者画面
+         ⑩ JavaScriptファイルの読み込み
+    ====================================================== -->
+
+    <!-- ① ページの基本設定 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ぬまコン</title>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- ↓ ここを丸ゴシック（Zen Maru Gothic）のコードに変更しました ↓ -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main class="container">
+
+        <!-- =================================================
+             ④ ホーム画面
+        ================================================== -->
+        <section id="homeScreen">
+
+            <!-- ロゴ・町名 -->
+            <header class="logo-area">
+                <span class="town-name">北海道沼田町</span>
+                <img src="images/logo.png" alt="ぬまコン" class="logo-img">
+                <span class="sub-title">沼田町の「知りたい」が<br>すぐ見つかる</span>
+            </header>
+
+            <!-- 検索方法の案内 -->
+            <div class="instructions">
+                <p>① 「テキスト」か「マイク」のマークをタップ！</p>
+                <p>②  探したい内容を入力または話すだけ！</p>
+            </div>
+
+            <!-- 検索ボタン -->
+            <div class="search-buttons">
+
+                <button
+                    type="button"
+                    id="voiceSearchBtn"
+                    class="btn voice-btn"
+                >
+                    <span class="material-symbols-outlined icon-mic">
+                        mic
+                    </span>
+                    <span>音声で検索</span>
+                </button>
+
+                <button
+                    type="button"
+                    id="textSearchBtn"
+                    class="btn text-btn"
+                >
+                    <span class="material-symbols-outlined icon-text">
+                        text_fields
+                    </span>
+                    <span>文字で検索</span>
+                </button>
+
+            </div>
+
+            <!-- 回覧板・お知らせ -->
+            <section class="notice-board">
+
+                <h2>回覧板</h2>
+
+                <!-- JavaScriptで登録済みの回覧板を表示 -->
+                <div class="notice-list"></div>
+
+                <!-- 回覧板一覧画面へのリンク -->
+                <div class="notice-bottom">
+                    <a href="#" id="noticeListBtn">
+                        一覧をみる ＞
+                    </a>
+                </div>
+
+            </section>
+
+            <!-- 管理者画面への入口 -->
+            <div class="admin-entry">
+                <button
+                    type="button"
+                    id="adminScreenBtn"
+                >
+                    <span class="material-symbols-outlined">
+                        settings
+                    </span>
+                    回覧板の管理
+                </button>
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ⑤ 音声検索画面
+        ================================================== -->
+        <section
+            id="voiceChatScreen"
+            class="chat-screen"
+            style="display: none;"
+        >
+
+            <!-- 画面上部 -->
+            <header class="chat-header">
+
+                <button
+                    type="button"
+                    id="voiceBackBtn"
+                    class="back-btn"
+                >
+                    ← 戻る
+                </button>
+
+                <h2>音声で検索</h2>
+
+            </header>
+
+            <!-- 会話表示エリア -->
+            <div class="chat-area">
+
+                <div class="chat-bubble ai">
+                    こんにちは！<br>
+                    知りたいことを話しかけてください。
+                </div>
+
+            </div>
+
+            <!-- 音声入力エリア -->
+            <div class="chat-input-area">
+
+                <button
+                    type="button"
+                    class="mic-button-active"
+                    aria-label="音声入力"
+                >
+                    <span class="material-symbols-outlined">
+                        mic
+                    </span>
+                </button>
+
+                <p>マイクを使って話しかけてください</p>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ⑥ テキスト検索画面
+        ================================================== -->
+        <section
+            id="textChatScreen"
+            class="chat-screen"
+            style="display: none;"
+        >
+
+            <!-- 画面上部 -->
+            <header class="chat-header">
+
+                <button
+                    type="button"
+                    id="textBackBtn"
+                    class="back-btn"
+                >
+                    ← 戻る
+                </button>
+
+                <h2>文字で検索</h2>
+
+            </header>
+
+            <!-- 会話表示エリア -->
+            <div
+                id="textChatArea"
+                class="chat-area"
+            >
+
+                <div class="chat-bubble ai">
+                    こんにちは！<br>
+                    知りたいことを入力してください。
+                </div>
+
+            </div>
+
+            <!-- テキスト入力エリア -->
+            <form
+                class="text-input-area"
+                onsubmit="return false;"
+            >
+
+                <input
+                    type="text"
+                    id="chatInput"
+                    placeholder="知りたいことを入力"
+                    aria-label="検索内容"
+                >
+
+                <button
+                    type="button"
+                    id="sendBtn"
+                    aria-label="送信"
+                >
+                    <span class="material-symbols-outlined">
+                        send
+                    </span>
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- =================================================
+             ⑦ 回覧板一覧画面
+        ================================================== -->
+        <section
+            id="noticeListScreen"
+            class="sub-screen"
+            style="display: none;"
+        >
+
+            <!-- 画面上部 -->
+            <header class="chat-header">
+
+                <button
+                    type="button"
+                    id="noticeListBackBtn"
+                    class="back-btn"
+                >
+                    ← 戻る
+                </button>
+
+                <h2>回覧板一覧</h2>
+
+            </header>
+
+            <!-- 回覧板一覧 -->
+            <div class="content-area">
+
+                <div class="notice-board">
+
+                    <h2>お知らせ・イベント</h2>
+                    <div class="notice-list">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ⑧ 回覧板詳細画面
+        ================================================== -->
+        <section
+            id="noticeDetailScreen"
+            class="sub-screen"
+            style="display: none;"
+        >
+
+            <!-- 画面上部 -->
+            <header class="chat-header">
+
+                <button
+                    type="button"
+                    id="noticeDetailBackBtn"
+                    class="back-btn"
+                >
+                    ← 戻る
+                </button>
+
+                <h2>回覧板の詳細</h2>
+
+            </header>
+
+            <!-- 詳細内容 -->
+            <div class="content-area detail-area">
+
+                <span
+                    id="detailBadge"
+                    class="badge"
+                >
+                    お知らせ
+                </span>
+
+                <h3 id="detailTitle">
+                    タイトル
+                </h3>
+
+                <p
+                    id="detailContent"
+                    class="detail-text"
+                >
+                    本文
+                </p>
+
+                <!-- 写真が登録されている場合のみ表示 -->
+                <div
+                    id="detailPhotoArea"
+                    class="detail-photo-area"
+                    style="display: none;"
+                >
+                    <img
+                        id="detailPhoto"
+                        alt="回覧板の写真"
+                    >
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ⑨ 管理者画面
+             回覧板の登録・編集・削除
+        ================================================== -->
+        <section
+            id="adminScreen"
+            class="sub-screen admin-screen"
+            style="display: none;"
+        >
+
+            <!-- 画面上部 -->
+            <header class="chat-header">
+
+                <button
+                    type="button"
+                    id="adminBackBtn"
+                    class="back-btn"
+                >
+                    ← 戻る
+                </button>
+
+                <h2>回覧板の管理</h2>
+
+            </header>
+
+            <!-- 管理者用の操作エリア -->
+            <div class="content-area admin-content">
+
+                <h3 id="adminFormHeading">
+                    新しい回覧板を登録
+                </h3>
+
+                <!-- 回覧板登録フォーム -->
+                <form id="noticeForm">
+
+                    <!-- 編集中の回覧板ID -->
+                    <input
+                        type="hidden"
+                        id="noticeId"
+                    >
+
+                    <!-- 種類 -->
+                    <label for="noticeType">
+                        種類
+                    </label>
+
+                    <select
+                        id="noticeType"
+                        required
+                    >
+                        <option value="お知らせ">
+                            お知らせ
+                        </option>
+                        <option value="イベント">
+                            イベント
+                        </option>
+                    </select>
+
+                    <!-- タイトル -->
+                    <label for="noticeTitleInput">
+                        タイトル
+                    </label>
+
+                    <input
+                        type="text"
+                        id="noticeTitleInput"
+                        maxlength="100"
+                        placeholder="タイトルを入力"
+                        required
+                    >
+
+                    <!-- 本文 -->
+                    <label for="noticeContentInput">
+                        本文
+                    </label>
+
+                    <textarea
+                        id="noticeContentInput"
+                        rows="6"
+                        placeholder="お知らせの内容を入力"
+                        required
+                    ></textarea>
+
+                    <!-- 写真 -->
+                    <label for="noticePhotoInput">
+                        写真（任意）
+                    </label>
+
+                    <input
+                        type="file"
+                        id="noticePhotoInput"
+                        accept="image/*"
+                    >
+
+                    <p class="admin-help">
+                        写真はなくても登録できます。
+                    </p>
+
+                    <!-- 写真のプレビュー -->
+                    <div
+                        id="photoPreviewArea"
+                        class="photo-preview-area"
+                        style="display: none;"
+                    >
+
+                        <img
+                            id="photoPreview"
+                            alt="写真のプレビュー"
+                        >
+
+                        <button
+                            type="button"
+                            id="removePhotoBtn"
+                        >
+                            写真を外す
+                        </button>
+
+                    </div>
+
+                    <!-- 登録・編集ボタン -->
+                    <div class="admin-form-buttons">
+
+                        <button
+                            type="submit"
+                            id="saveNoticeBtn"
+                        >
+                            登録する
+                        </button>
+
+                        <button
+                            type="button"
+                            id="cancelEditBtn"
+                            style="display: none;"
+                        >
+                            編集をキャンセル
+                        </button>
+
+                    </div>
+
+                </form>
+
+                <hr>
+
+                <!-- 登録済み回覧板の管理 -->
+                <h3>登録済みの回覧板</h3>
+
+                <div
+                    id="adminNoticeList"
+                    class="admin-notice-list"
+                ></div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         ⑩ JavaScriptファイルの読み込み
+    ====================================================== -->
+    <script src="script.js"></script>
+
+</body>
+</html>
