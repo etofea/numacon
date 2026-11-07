@@ -114,19 +114,38 @@ noticeListBackBtn.addEventListener('click', () => {
 });
 
 // 管理者画面を開く
-// 管理者画面を開く（パスワード保護付き）
-adminScreenBtn.addEventListener('click', () => {
+adminScreenBtn.addEventListener('click', async () => {
     // パスワード入力画面を表示
     const password = prompt('管理者用のパスワードを入力してください。');
 
-    // パスワードが一致するかチェック（ここでは例として「numata2026」に設定）
-    if (password === 'numata2026') {
-        resetNoticeForm();
-        renderAdminNotices();
-        showScreen(adminScreen);
-    } else if (password !== null) {
-        // キャンセルを押した時は画面遷移せず、間違えた場合のみエラーを出す
-        alert('パスワードが違います。');
+    // キャンセルを押した時は何もしない
+    if (password === null) return;
+
+    try {
+        // ローカルのFlaskサーバーにパスワードを送信！
+        const response = await fetch('http://localhost:5000/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ password: password }) // 入力されたパスワードを詰めて送る
+        });
+
+        // サーバーからの返事（OK/NG）を受け取る
+        const result = await response.json();
+
+        // 返事が success: true だったら画面を切り替える
+        if (result.success) {
+            resetNoticeForm();
+            renderAdminNotices();
+            showScreen(adminScreen);
+        } else {
+            // 間違えていたらエラーメッセージを出す
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error('通信エラー:', error);
+        alert('サーバーとの通信に失敗しました。');
     }
 });
 
