@@ -124,6 +124,8 @@ adminScreenBtn.addEventListener('click', async () => {
     try {
         // ローカルのFlaskサーバーにパスワードを送信！
         const response = await fetch('http://localhost:5000/api/login', {
+        // 例：IPアドレスが 100.100.100.10 だった場合
+        //const response = await fetch('http://100.100.100.10:5000/api/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
