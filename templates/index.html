@@ -17,8 +17,7 @@
          ⑥ テキスト検索画面
          ⑦ 回覧板一覧画面
          ⑧ 回覧板詳細画面
-         ⑨ 管理者画面
-         ⑩ JavaScriptファイルの読み込み
+         ⑨ JavaScriptファイルの読み込み
     ====================================================== -->
 
     <!-- ① ページの基本設定 -->
@@ -33,7 +32,7 @@
     <!-- 丸ゴシック -->
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
@@ -48,7 +47,7 @@
             <!-- ロゴ・町名 -->
             <header class="logo-area">
                 <span class="town-name">北海道沼田町</span>
-                <img src="images/logo.png" alt="ぬまコン" class="logo-img">
+                <img src="/static/images/logo.png" alt="ぬまコン" class="logo-img">
                 <span class="sub-title">沼田町の「知りたい」が<br>すぐ見つかる</span>
             </header>
 
@@ -101,19 +100,6 @@
                 </div>
 
             </section>
-
-            <!-- 管理者画面への入口 -->
-            <div class="admin-entry">
-                <button
-                    type="button"
-                    id="adminScreenBtn"
-                >
-                    <span class="material-symbols-outlined">
-                        settings
-                    </span>
-                    回覧板の管理
-                </button>
-            </div>
 
         </section>
 
@@ -338,169 +324,13 @@
 
         </section>
 
-
-        <!-- =================================================
-             ⑨ 管理者画面
-             回覧板の登録・編集・削除
-        ================================================== -->
-        <section
-            id="adminScreen"
-            class="sub-screen admin-screen"
-            style="display: none;"
-        >
-
-            <!-- 画面上部 -->
-            <header class="chat-header">
-
-                <button
-                    type="button"
-                    id="adminBackBtn"
-                    class="back-btn"
-                >
-                    ← 戻る
-                </button>
-
-                <h2>回覧板の管理</h2>
-
-            </header>
-
-            <!-- 管理者用の操作エリア -->
-            <div class="content-area admin-content">
-
-                <h3 id="adminFormHeading">
-                    新しい回覧板を登録
-                </h3>
-
-                <!-- 回覧板登録フォーム -->
-                <form id="noticeForm">
-
-                    <!-- 編集中の回覧板ID -->
-                    <input
-                        type="hidden"
-                        id="noticeId"
-                    >
-
-                    <!-- 種類 -->
-                    <label for="noticeType">
-                        種類
-                    </label>
-
-                    <select
-                        id="noticeType"
-                        required
-                    >
-                        <option value="お知らせ">
-                            お知らせ
-                        </option>
-                        <option value="イベント">
-                            イベント
-                        </option>
-                    </select>
-
-                    <!-- タイトル -->
-                    <label for="noticeTitleInput">
-                        タイトル
-                    </label>
-
-                    <input
-                        type="text"
-                        id="noticeTitleInput"
-                        maxlength="100"
-                        placeholder="タイトルを入力"
-                        required
-                    >
-
-                    <!-- 本文 -->
-                    <label for="noticeContentInput">
-                        本文
-                    </label>
-
-                    <textarea
-                        id="noticeContentInput"
-                        rows="6"
-                        placeholder="お知らせの内容を入力"
-                        required
-                    ></textarea>
-
-                    <!-- 写真 -->
-                    <label for="noticePhotoInput">
-                        写真（任意）
-                    </label>
-
-                    <input
-                        type="file"
-                        id="noticePhotoInput"
-                        accept="image/*"
-                    >
-
-                    <p class="admin-help">
-                        写真はなくても登録できます。
-                    </p>
-
-                    <!-- 写真のプレビュー -->
-                    <div
-                        id="photoPreviewArea"
-                        class="photo-preview-area"
-                        style="display: none;"
-                    >
-
-                        <img
-                            id="photoPreview"
-                            alt="写真のプレビュー"
-                        >
-
-                        <button
-                            type="button"
-                            id="removePhotoBtn"
-                        >
-                            写真を外す
-                        </button>
-
-                    </div>
-
-                    <!-- 登録・編集ボタン -->
-                    <div class="admin-form-buttons">
-
-                        <button
-                            type="submit"
-                            id="saveNoticeBtn"
-                        >
-                            登録する
-                        </button>
-
-                        <button
-                            type="button"
-                            id="cancelEditBtn"
-                            style="display: none;"
-                        >
-                            編集をキャンセル
-                        </button>
-
-                    </div>
-
-                </form>
-
-                <hr>
-
-                <!-- 登録済み回覧板の管理 -->
-                <h3>登録済みの回覧板</h3>
-
-                <div
-                    id="adminNoticeList"
-                    class="admin-notice-list"
-                ></div>
-
-            </div>
-
-        </section>
-
     </main>
 
 
     <!-- =====================================================
          ⑩ JavaScriptファイルの読み込み
     ====================================================== -->
-    <script src="script.js"></script>
+    <script src="/static/script.js"></script>
 
 </body>
 </html>
