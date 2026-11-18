@@ -979,3 +979,191 @@ a:focus-visible,
         transform: rotate(360deg);
     }
 }
+
+/* =========================================================
+   ⑲ 管理者画面（PC比率・左タブレイアウト）
+========================================================= */
+
+body.admin-body {
+    font-family: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+    background-color: #f4f6f9;
+    margin: 0;
+    padding: 0;
+}
+
+/* 画面全体の横幅を全タブ共通でガッチリ固定 */
+.admin-pc-wrapper {
+    width: 92%;
+    max-width: 1600px;
+    min-height: 100vh;
+    margin: 0 auto;
+    background-color: #ffffff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-pc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background-color: #ffffff;
+    border-bottom: 3px solid #000000;
+}
+
+.admin-pc-header h2 {
+    margin: 0;
+    font-size: 26px;
+}
+
+.admin-pc-body {
+    display: flex;
+    flex: 1;
+    width: 100%;
+}
+
+/* 左側サイドバー（幅を280pxで完全固定） */
+.admin-sidebar {
+    width: 330px;
+    min-width: 330px;
+    max-width: 330px;
+    flex-shrink: 0;
+    background-color: #f8fafc;
+    border-right: 2px solid #e2e8f0;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-sizing: border-box;
+}
+
+.sidebar-group-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #555555;
+    margin: 0 0 4px 8px;
+}
+
+.admin-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px 14px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: bold;
+    color: #222222;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.admin-tab-btn:hover {
+    background-color: #e9f2ff;
+}
+
+.admin-tab-btn.active {
+    background-color: #d1f7f9;
+    border-color: #000000;
+    color: #000000;
+}
+
+/* 右側メインパネル（中身が少なくても横幅が縮まないよう固定） */
+.admin-main-panel {
+    flex: 1;
+    width: calc(100% - 330px);
+    min-width: 0;
+    padding: 32px 48px;
+    box-sizing: border-box;
+}
+
+.admin-tab-content {
+    width: 100%;
+}
+
+.admin-tab-content h3 {
+    font-size: 26px;
+    margin-top: 0;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #000000;
+}
+
+/* フォーム内のラベルと入力欄を縦に綺麗に揃える */
+.admin-pc-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.admin-pc-form .form-row {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+}
+
+.admin-pc-form .form-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-pc-form label {
+    display: block;
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 6px;
+}
+
+.admin-pc-form input[type="text"],
+.admin-pc-form select,
+.admin-pc-form textarea,
+.pc-date-input {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 2px solid #555555;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 18px;
+    box-sizing: border-box;
+    background-color: #ffffff;
+}
+
+.admin-pc-form textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.admin-pc-form input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #888888;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    background-color: #fafafa;
+}
+
+.admin-form-buttons {
+    margin-top: 12px;
+}
+
+.admin-form-buttons button {
+    padding: 14px 28px;
+    font-size: 19px;
+    font-weight: bold;
+    border: 2px solid #000000;
+    border-radius: 10px;
+    cursor: pointer;
+}
+

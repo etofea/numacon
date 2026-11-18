@@ -4,6 +4,25 @@ const MAX_PHOTO_SIZE = 8 * 1024 * 1024;  // 回覧板写真: 8MB
 const DOC_STORAGE_KEY = 'numacon_docs';
 const NOTICE_STORAGE_KEY = 'numacon_notices';
 
+// 左側タブの切り替え処理
+const tabButtons = document.querySelectorAll('.admin-tab-btn');
+const tabContents = document.querySelectorAll('.admin-tab-content');
+
+function switchTab(targetId) {
+    tabButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === targetId);
+    });
+    tabContents.forEach(content => {
+        content.style.display = (content.id === targetId) ? 'block' : 'none';
+    });
+}
+
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        switchTab(btn.dataset.target);
+    });
+});
+
 // ==========================================
 // 1. 行政資料の追加・一覧・削除
 // ==========================================
@@ -187,7 +206,10 @@ removePhotoBtn.addEventListener('click', () => {
     photoPreviewArea.style.display = 'none';
 });
 
-cancelEditBtn.addEventListener('click', resetNoticeForm);
+cancelEditBtn.addEventListener('click', () => {
+    resetNoticeForm();
+    switchTab('tab-list-notice');
+});
 
 noticeForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -264,7 +286,7 @@ function renderAdminNotices() {
             adminFormHeading.textContent = '📋 回覧板を編集';
             saveNoticeBtn.textContent = '変更を保存';
             cancelEditBtn.style.display = 'inline-block';
-            noticeForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            switchTab('tab-add-notice');
         });
 
         const deleteBtn = document.createElement('button');
