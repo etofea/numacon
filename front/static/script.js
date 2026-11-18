@@ -100,40 +100,9 @@ noticeListBackBtn.addEventListener('click', () => {
    ③ テキストチャット
    既存の試作用応答を維持
 ========================================================= */
-
-function sendMessage() {
+async function sendMessage() {
     const text = chatInput.value.trim();
 
-    // 空欄の場合は送信しない
-    if (text === '') {
-        return;
-    }
-
-    // ユーザーのメッセージを表示
-    const userBubble = document.createElement('div');
-
-    userBubble.className = 'chat-bubble user';
-    userBubble.textContent = text;
-
-    textChatArea.appendChild(userBubble);
-
-    // 入力欄を空にする
-    chatInput.value = '';
-
-    // 最新のメッセージまでスクロール
-    textChatArea.scrollTop = textChatArea.scrollHeight;
-
-    // くるくるローディングを表示
-    const loadingArea = document.createElement('div');
-    loadingArea.className = 'chat-loading';
-    loadingArea.innerHTML = '<div class="loading-spinner"></div><p>AIが調べています...</p>';
-    textChatArea.appendChild(loadingArea);
-    textChatArea.scrollTop = textChatArea.scrollHeight;
-
-    async function sendMessage() {
-    const text = chatInput.value.trim();
-
-    // 空欄の場合は送信しない
     if (text === '') {
         return;
     }
@@ -144,21 +113,11 @@ function sendMessage() {
     userBubble.textContent = text;
     textChatArea.appendChild(userBubble);
 
-    // 入力欄を空にする
     chatInput.value = '';
-
-    // 最新のメッセージまでスクロール
-    textChatArea.scrollTop = textChatArea.scrollHeight;
-
-    // くるくるローディング
-    const loadingArea = document.createElement('div');
-    loadingArea.className = 'chat-loading';
-    loadingArea.innerHTML = '<div class="loading-spinner"></div><p>AIが調べています...</p>';
-    textChatArea.appendChild(loadingArea);
     textChatArea.scrollTop = textChatArea.scrollHeight;
 
     try {
-        // FlaskのAIチャットAPIに質問を送信して、返事を待つ
+        // サーバー（Flask）に質問を送って返事を待つ
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
@@ -169,19 +128,14 @@ function sendMessage() {
 
         const data = await response.json();
 
-        // AIの回答が届いたらくるくるを消す
-        loadingArea.remove();
-
-        // 届いた回答の吹き出しを画面に追加する
+        // 返ってきた回答の吹き出しを表示
         const aiBubble = document.createElement('div');
         aiBubble.className = 'chat-bubble ai';
         aiBubble.textContent = data.reply;
         textChatArea.appendChild(aiBubble);
 
     } catch (error) {
-        // 通信エラーが起きたときも、くるくるが残り続けないように消す
-        loadingArea.remove();
-
+        // 通信エラーが起きたとき
         const errorBubble = document.createElement('div');
         errorBubble.className = 'chat-bubble ai';
         errorBubble.textContent = '通信エラーが発生しました。もう一度お試しください。';
@@ -189,7 +143,6 @@ function sendMessage() {
     }
 
     textChatArea.scrollTop = textChatArea.scrollHeight;
-}
 }
 
 // 送信ボタン

@@ -943,44 +943,6 @@ a:focus-visible,
 }
 
 /* =========================================================
-   ⑱ AIチャットのローディングアニメーション（くるくる）
-========================================================= */
-
-.chat-loading {
-    align-self: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 25px 0;
-}
-
-.loading-spinner {
-    width: 60px;
-    height: 60px;
-    border: 7px solid #ffe3f0;
-    border-top: 7px solid #1a75d2;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-.chat-loading p {
-    font-size: 22px;
-    font-weight: bold;
-    color: #000000;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* =========================================================
    ⑲ 管理者画面（PC比率・左タブレイアウト）
 ========================================================= */
 
