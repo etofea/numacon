@@ -1,9 +1,13 @@
 # =========================================================
 # 1. 必要なライブラリの読み込み
 # =========================================================
+import json
+
 from flask import Flask, render_template, request, Response, jsonify
 from flask_cors import CORS
 import time
+import os
+import requests
 
 # Flaskアプリの本体を作成
 app = Flask(__name__)
@@ -58,18 +62,20 @@ def admin():
 # 4. AIチャット用
 # =========================================================
 # 質問が送信されたときに動く処理
+
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:4000")
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     # jsから送られてきたJSONデータを受け取る
     data = request.get_json()
-    user_message = data.get('message', '')
 
-    # 【テスト用】AIが考えている演出のため2秒待機（本番ではここをAI検索処理に置き換える）
-    time.sleep(2)
-    ai_reply = f"「{user_message}」についての回答です。（ここにAIの検索結果が入ります）"
-
-    # 回答をJSON形式にしてjsへ返す
-    return jsonify({"reply": ai_reply})
+    try:
+        Response = requests.post(f"{BACKEND_URL}/api/chat", json=data, timeout=10)
+        return jsonify(Response.json()), Response.status_code
+    except Exception as e:
+        print(f"failed backed communication: error occurred : {e}")
+        return jsonify({"reply": f"failed backedn communicatyion error: {e}"})
 
 
 # =========================================================

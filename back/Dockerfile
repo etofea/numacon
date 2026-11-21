@@ -1,6 +1,12 @@
 FROM debian:stable-slim
+FROM rust:slim
 
 WORKDIR /app
 
-# コンテナがすぐ終了しないように待機させる。一時的
-CMD ["tail", "-f", "/dev/null"]
+COPY . .
+
+RUN cargo build --release
+
+EXPOSE 8080
+
+CMD [ "./target/release/app" ]

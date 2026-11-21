@@ -10,8 +10,23 @@ services:
     depends_on:
       - backend
 
+  # caddy未実装のためコメントアウト
+  # caddy:
+  #   image: caddy_latest
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./caddy/Caddyfile:/etc/caddy/Caddyfile # 要調整
+  #     - caddy_data:/data # 要調整
+  #   depends_on:
+  #     - backend
+
   backend:
     build:
       context: ./back
       dockerfile: Dockerfile
-      
+    ports:
+      - "2000:2000"
+    # volumes:
+    #   - ./back:/app
