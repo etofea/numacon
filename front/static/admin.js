@@ -1,6 +1,7 @@
 /* =========================================================
    ぬまコン 管理者画面 JavaScript (admin.js)
-   行政資料と回覧板の「追加・編集・一覧表示・削除」を行う処理
+   行政資料の「API連携（追加・一覧表示・処理状態の自動更新・削除）」と
+   回覧板の「追加・編集・一覧表示・削除」を行う処理
 ========================================================= */
 
 // =========================================================
@@ -10,9 +11,23 @@
 const MAX_DOC_SIZE = 20 * 1024 * 1024;   // 行政資料: 20MB
 const MAX_PHOTO_SIZE = 8 * 1024 * 1024;  // 回覧板写真: 8MB
 
-// ブラウザの保存領域にデータを保存するときの名前
-const DOC_STORAGE_KEY = 'numacon_docs';
+// ブラウザの保存領域にデータを保存するときの名前（回覧板はプロトタイプ段階のためlocalStorage）
 const NOTICE_STORAGE_KEY = 'numacon_notices';
+
+// 行政資料APIの接続先URLと、処理状態を自動更新する間隔
+const DOC_API_BASE = '/api/admin/docs';
+const POLLING_INTERVAL_MS = 5000;        // 5000ミリ秒 = 5秒ごとに更新
+
+// サーバーから返ってくる処理状態（status）を、画面表示用の日本語と色（CSSクラス）に対応させる表
+const STATUS_MAP = {
+    pending:    { label: '処理待ち', className: 'status-pending' },
+    processing: { label: '処理中…',  className: 'status-processing' },
+    done:       { label: '完了',     className: 'status-done' },
+    failed:     { label: '失敗',     className: 'status-failed' }
+};
+
+// 5秒ごとの自動更新タイマーを管理するための変数（停止するときに使う）
+let docPollingTimer = null;
 
 // =========================================================
 // 1. 左側サイドバーのタブ切り替え処理
@@ -31,6 +46,15 @@ function switchTab(targetId) {
     tabContents.forEach(content => {
         content.style.display = (content.id === targetId) ? 'block' : 'none';
     });
+
+    // 「行政資料の一覧・削除」タブを開いている間だけ、一覧を取得して5秒ごとに自動更新する
+    if (targetId === 'tab-list-doc') {
+        fetchAndRenderDocs();
+        startDocPolling();
+    } else {
+        // 別のタブに移ったら無駄な通信を防ぐために自動更新を止める
+        stopDocPolling();
+    }
 }
 
 // 各タブボタンがクリックされたときに切り替え関数を動かす
@@ -41,31 +65,31 @@ tabButtons.forEach(btn => {
 });
 
 // ==========================================
-// 1. 行政資料の追加・一覧・削除
+// 2. 行政資料の追加・一覧・削除（API連携）
 // ==========================================
-// HTMLからフォームと一覧表示エリアを取得
+// HTMLからフォーム、一覧表示エリア、送信ボタンを取得
 const docForm = document.getElementById('docForm');
 const adminDocList = document.getElementById('adminDocList');
+const docSubmitBtn = docForm.querySelector('button[type="submit"]');
 
-// 保存済みの行政資料データをブラウザから読み込む関数
-function loadDocs() {
-    try {
-        return JSON.parse(localStorage.getItem(DOC_STORAGE_KEY) || '[]');
-    } catch (e) {
-        return [];
+// 5秒ごとにサーバーから資料一覧を取り直すタイマーを開始する関数
+function startDocPolling() {
+    if (docPollingTimer) return; // すでに動いていれば二重起動しない
+    docPollingTimer = setInterval(() => {
+        fetchAndRenderDocs(true); // true = 裏での自動更新（通信失敗時に画面をエラーで上書きしない）
+    }, POLLING_INTERVAL_MS);
+}
+
+// 自動更新タイマーを止める関数
+function stopDocPolling() {
+    if (docPollingTimer) {
+        clearInterval(docPollingTimer);
+        docPollingTimer = null;
     }
 }
 
-// 読み込んだ行政資料データを変数に入れておく
-let docs = loadDocs();
-
-// 行政資料データをブラウザに保存する関数
-function saveDocs() {
-    localStorage.setItem(DOC_STORAGE_KEY, JSON.stringify(docs));
-}
-
 // 「行政資料を登録する」ボタンが押されたときの処理
-docForm.addEventListener('submit', (e) => {
+docForm.addEventListener('submit', async (e) => {
     // フォーム送信時の画面リロードを防ぐ
     e.preventDefault();
 
@@ -79,27 +103,74 @@ docForm.addEventListener('submit', (e) => {
         return;
     }
 
-    // 入力された内容を1つのデータにまとめる
-    const newDoc = {
-        id: 'doc-' + Date.now(),// 現在時刻を使って重複しないIDを作る
-        title: document.getElementById('docTitle').value.trim(),
-        category: document.getElementById('docCategory').value,
-        content: document.getElementById('docContent').value.trim(),
-        fileName: file ? file.name : 'なし',
-        schedule: document.getElementById('docSchedule').value,
-        publish: document.getElementById('docPublish').value
-    };
+    // 入力された内容とファイルをまとめて送るための箱（FormData）を作る
+    const formData = new FormData();
+    formData.append('title', document.getElementById('docTitle').value.trim());
+    formData.append('category', document.getElementById('docCategory').value);
+    formData.append('content', document.getElementById('docContent').value.trim());
+    if (file) {
+        formData.append('file', file);
+    }
+    formData.append('schedule', document.getElementById('docSchedule').value);
+    formData.append('publish', document.getElementById('docPublish').value);
 
-    // 配列の先頭に追加して保存し、画面の入力欄をリセットして一覧を更新
-    docs.unshift(newDoc);
-    saveDocs();
-    docForm.reset();
-    renderDocs();
-    alert('行政資料を登録しました。');
+    // 送信中に二重押しされないようボタンを無効化する
+    docSubmitBtn.disabled = true;
+    const originalBtnText = docSubmitBtn.textContent;
+    docSubmitBtn.textContent = '送信中…';
+
+    try {
+        // バックエンドAPIへFormDataを送信する（※FormData時はContent-Typeを手動設定しない）
+        const res = await fetch(DOC_API_BASE, {
+            method: 'POST',
+            body: formData
+        });
+
+        // サーバーからエラー番号が返ってきた場合は失敗として扱う
+        if (!res.ok) {
+            throw new Error(`登録に失敗しました (HTTP ${res.status})`);
+        }
+
+        // 入力欄をリセットし、登録した資料の処理状況が見える一覧タブへ移動する
+        docForm.reset();
+        alert('行政資料を登録しました。一覧画面で処理状況を確認できます。');
+        switchTab('tab-list-doc');
+    } catch (err) {
+        console.error('資料登録エラー:', err);
+        alert(`資料の登録に失敗しました。\n（バックエンドAPIが未実装、または通信エラーの可能性があります）\n詳細: ${err.message}`);
+    } finally {
+        // 成功・失敗にかかわらず、最後にボタンを元の状態に戻す
+        docSubmitBtn.disabled = false;
+        docSubmitBtn.textContent = originalBtnText;
+    }
 });
 
-// 登録済みの行政資料を画面に一覧表示する関数
-function renderDocs() {
+// サーバーから登録済みの行政資料一覧と処理状態を取得する関数
+async function fetchAndRenderDocs(isSilent = false) {
+    try {
+        const res = await fetch(DOC_API_BASE, { method: 'GET' });
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        // { docs: [...] } 形式でも、配列がそのまま返ってきても対応できるようにする
+        const docList = Array.isArray(data) ? data : (data.docs || []);
+        renderDocs(docList);
+    } catch (err) {
+        console.error('資料一覧取得エラー:', err);
+        // 初回表示や手動更新のときだけ、画面にエラーメッセージを出す
+        if (!isSilent) {
+            adminDocList.replaceChildren();
+            const msg = document.createElement('p');
+            msg.className = 'empty-message';
+            msg.textContent = `資料一覧を取得できませんでした（${err.message}）。バックエンドの /api/admin/docs が起動しているか確認してください。`;
+            adminDocList.appendChild(msg);
+        }
+    }
+}
+
+// 取得した行政資料を画面に一覧表示する関数
+function renderDocs(docs) {
     adminDocList.replaceChildren();
     // 1件も登録されていない場合
     if (docs.length === 0) {
@@ -112,19 +183,42 @@ function renderDocs() {
         const card = document.createElement('div');
         card.className = 'admin-notice-card';
 
+        // カテゴリーと処理状態のバッジを横並びにするエリア
+        const badgeRow = document.createElement('div');
+        badgeRow.className = 'doc-badge-row';
+
         // カテゴリーのバッジ
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = doc.category;
+        const categoryBadge = document.createElement('span');
+        categoryBadge.className = 'badge';
+        categoryBadge.textContent = doc.category || 'その他';
+
+        // 処理状態（処理待ち・処理中・完了・失敗）のバッジ
+        const statusInfo = STATUS_MAP[doc.status] || { label: doc.status || '不明', className: 'status-pending' };
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `status-badge ${statusInfo.className}`;
+        statusBadge.textContent = statusInfo.label;
+
+        badgeRow.append(categoryBadge, statusBadge);
 
         // タイトル
         const title = document.createElement('h4');
         title.textContent = doc.title;
 
-        // ファイル名と公開日の補足情報
+        // ファイル名と公開日の補足情報（値がnullのときは「なし」「未設定」と表示）
         const info = document.createElement('p');
         info.className = 'admin-help';
-        info.textContent = `ファイル: ${doc.fileName} / 公開日: ${doc.publish || '未設定'}`;
+        const fileName = doc.file_name || doc.fileName || 'なし';
+        info.textContent = `ファイル: ${fileName} / 公開日: ${doc.publish || '未設定'}`;
+
+        card.append(badgeRow, title, info);
+
+        // 処理が失敗（failed）していて理由がある場合は、赤枠で失敗理由を表示する
+        if (doc.status === 'failed' && doc.error_message) {
+            const errorReason = document.createElement('p');
+            errorReason.className = 'doc-error-reason';
+            errorReason.textContent = `失敗理由: ${doc.error_message}`;
+            card.appendChild(errorReason);
+        }
 
         // 削除ボタンのエリア
         const buttons = document.createElement('div');
@@ -135,22 +229,38 @@ function renderDocs() {
         deleteBtn.className = 'delete-button';
         deleteBtn.textContent = '削除';
 
-        // 削除ボタンが押されたときの処理
-        deleteBtn.addEventListener('click', () => {
+        // 削除ボタンが押されたときの処理（確認ダイアログを出してからAPIで削除）
+        deleteBtn.addEventListener('click', async () => {
             if (!confirm(`「${doc.title}」を削除しますか？`)) return;
-            docs = docs.filter(item => item.id !== doc.id);
-            saveDocs();
-            renderDocs();
+
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = '削除中…';
+
+            try {
+                const res = await fetch(`${DOC_API_BASE}/${encodeURIComponent(doc.id)}`, {
+                    method: 'DELETE'
+                });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                // 削除に成功したら一覧を取り直して画面を更新する
+                await fetchAndRenderDocs();
+            } catch (err) {
+                console.error('資料削除エラー:', err);
+                alert(`削除に失敗しました: ${err.message}`);
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '削除';
+            }
         });
 
         buttons.appendChild(deleteBtn);
-        card.append(badge, title, info, buttons);
+        card.appendChild(buttons);
         adminDocList.appendChild(card);
     });
 }
 
 // ==========================================
-// 2. 回覧板の追加・編集・一覧・削除
+// 3. 回覧板の追加・編集・一覧・削除
 // ==========================================
 // HTMLから回覧板フォームやプレビュー用の要素を取得
 const noticeForm = document.getElementById('noticeForm');
@@ -371,6 +481,6 @@ function renderAdminNotices() {
 // =========================================================
 // 4. ページ読み込み時の初期表示
 // =========================================================
-// 画面を開いた瞬間に、保存済みの行政資料と回覧板を一覧に表示する
-renderDocs();
+// 画面を開いた瞬間に、保存済みの回覧板を一覧に表示する
+
 renderAdminNotices();

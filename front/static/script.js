@@ -98,51 +98,264 @@ noticeListBackBtn.addEventListener('click', () => {
 
 /* =========================================================
    ③ テキストチャット
-   既存の試作用応答を維持
+   SSEストリーミング受信・待機中無効化・出典/該当なし/エラー表示
 ========================================================= */
-async function sendMessage() {
-    const text = chatInput.value.trim();
 
+let isSending = false;
+
+// 送信中フラグに応じて入力欄とボタンの有効・無効を切り替える
+function setChatDisabled(disabled) {
+    isSending = disabled;
+    chatInput.disabled = disabled;
+    sendBtn.disabled = disabled;
+}
+
+// 吹き出しを作成する共通関数
+function createChatBubble(type, text = '') {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${type}`;
+
+    if (text !== '') {
+        const textEl = document.createElement('div');
+        textEl.className = 'chat-text';
+        textEl.textContent = text;
+        bubble.appendChild(textEl);
+    }
+
+    return bubble;
+}
+
+// 吹き出しの末尾に出典リストを追加する
+function appendSources(bubble, sources) {
+    if (!Array.isArray(sources) || sources.length === 0) {
+        return;
+    }
+
+    const sourcesBox = document.createElement('div');
+    sourcesBox.className = 'chat-sources';
+
+    const heading = document.createElement('p');
+    heading.className = 'chat-sources-title';
+    heading.textContent = '参考資料（出典）';
+    sourcesBox.appendChild(heading);
+
+    const list = document.createElement('ul');
+    list.className = 'chat-sources-list';
+
+    sources.forEach(src => {
+        const item = document.createElement('li');
+        const label = src.page
+            ? `${src.title}（p.${src.page}）`
+            : src.title;
+
+        // urlがある場合は元PDFを別タブで開けるリンクにする
+        if (src.url) {
+            const link = document.createElement('a');
+            link.href = src.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = label;
+            item.appendChild(link);
+        } else {
+            item.textContent = label;
+        }
+
+        list.appendChild(item);
+    });
+
+    sourcesBox.appendChild(list);
+    bubble.appendChild(sourcesBox);
+}
+
+// SSEイベント1件を画面に反映する
+function handleSseEvent(eventName, payload, state) {
+    if (eventName === 'chunk') {
+        const chunkText = payload.text || '';
+        if (chunkText === '') return;
+
+        // 最初の文字が届いたら待機表示を消して回答吹き出しを作る
+        if (!state.aiBubble) {
+            state.loadingBubble.remove();
+            state.aiBubble = createChatBubble('ai');
+            state.textEl = document.createElement('div');
+            state.textEl.className = 'chat-text';
+            state.aiBubble.appendChild(state.textEl);
+            textChatArea.appendChild(state.aiBubble);
+        }
+
+        state.textEl.textContent += chunkText;
+        textChatArea.scrollTop = textChatArea.scrollHeight;
+        return;
+    }
+
+    if (eventName === 'sources') {
+        if (state.aiBubble) {
+            appendSources(state.aiBubble, payload.sources);
+            textChatArea.scrollTop = textChatArea.scrollHeight;
+        }
+        return;
+    }
+
+    if (eventName === 'not_found') {
+        state.loadingBubble.remove();
+        state.handled = true;
+        const msg = payload.message
+            || '該当する資料が見つかりませんでした。別の言葉で試してみてください。';
+        const notFoundBubble = createChatBubble('ai not-found', msg);
+        textChatArea.appendChild(notFoundBubble);
+        textChatArea.scrollTop = textChatArea.scrollHeight;
+        return;
+    }
+
+    if (eventName === 'error') {
+        state.loadingBubble.remove();
+        state.handled = true;
+        const msg = payload.message
+            || '回答の作成中にエラーが発生しました。時間をおいてもう一度お試しください。';
+        const errorBubble = createChatBubble('ai error', msg);
+        textChatArea.appendChild(errorBubble);
+        textChatArea.scrollTop = textChatArea.scrollHeight;
+        return;
+    }
+
+    if (eventName === 'done') {
+        state.done = true;
+    }
+}
+
+async function sendMessage() {
+    if (isSending) {
+        return;
+    }
+
+    const text = chatInput.value.trim();
     if (text === '') {
         return;
     }
 
     // ユーザーのメッセージを表示
-    const userBubble = document.createElement('div');
-    userBubble.className = 'chat-bubble user';
-    userBubble.textContent = text;
+    const userBubble = createChatBubble('user', text);
     textChatArea.appendChild(userBubble);
-
     chatInput.value = '';
+
+    // 送信中は入力欄とボタンを無効化
+    setChatDisabled(true);
+
+    // 回答待ち中の表示を出す
+    const loadingBubble = createChatBubble('ai loading', '調べています…少々お待ちください');
+    textChatArea.appendChild(loadingBubble);
     textChatArea.scrollTop = textChatArea.scrollHeight;
 
     try {
-        // サーバー（Flask）に質問を送って返事を待つ
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'text/event-stream, application/json'
             },
             body: JSON.stringify({ message: text })
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
 
-        // 返ってきた回答の吹き出しを表示
-        const aiBubble = document.createElement('div');
-        aiBubble.className = 'chat-bubble ai';
-        aiBubble.textContent = data.reply;
-        textChatArea.appendChild(aiBubble);
+        const contentType = response.headers.get('content-type') || '';
+
+        // --- パターンA：SSE（ストリーミング）で返ってきた場合 ---
+        if (contentType.includes('text/event-stream') && response.body) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            const state = {
+                loadingBubble,
+                aiBubble: null,
+                textEl: null,
+                handled: false,
+                done: false
+            };
+
+            let buffer = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                // 空行（\n\n または \r\n\r\n）ごとにSSEイベントを分割
+                const blocks = buffer.split(/\r?\n\r?\n/);
+                buffer = blocks.pop() || '';
+
+                for (const block of blocks) {
+                    if (!block.trim()) continue;
+
+                    let eventName = 'message';
+                    const dataLines = [];
+
+                    for (const line of block.split(/\r?\n/)) {
+                        if (line.startsWith('event:')) {
+                            eventName = line.slice(6).trim();
+                        } else if (line.startsWith('data:')) {
+                            dataLines.push(line.slice(5).trim());
+                        }
+                    }
+
+                    const rawData = dataLines.join('\n');
+                    let payload = {};
+                    if (rawData) {
+                        try {
+                            payload = JSON.parse(rawData);
+                        } catch {
+                            payload = { text: rawData };
+                        }
+                    }
+
+                    handleSseEvent(eventName, payload, state);
+                }
+            }
+
+            // 何も表示されずにストリームが終わった場合の保険
+            if (!state.aiBubble && !state.handled) {
+                loadingBubble.remove();
+                const fallbackBubble = createChatBubble(
+                    'ai not-found',
+                    '回答を取得できませんでした。もう一度お試しください。'
+                );
+                textChatArea.appendChild(fallbackBubble);
+            }
+        } else {
+            // --- パターンB：通常のJSON（オウム返し等）で返ってきた場合 ---
+            const data = await response.json();
+            loadingBubble.remove();
+
+            if (data.not_found) {
+                const notFoundBubble = createChatBubble(
+                    'ai not-found',
+                    data.message || '該当する資料が見つかりませんでした。'
+                );
+                textChatArea.appendChild(notFoundBubble);
+            } else {
+                const aiBubble = createChatBubble('ai', data.reply || '回答が空でした。');
+                appendSources(aiBubble, data.sources);
+                textChatArea.appendChild(aiBubble);
+            }
+        }
 
     } catch (error) {
-        // 通信エラーが起きたとき
-        const errorBubble = document.createElement('div');
-        errorBubble.className = 'chat-bubble ai';
-        errorBubble.textContent = '通信エラーが発生しました。もう一度お試しください。';
-        textChatArea.appendChild(errorBubble);
-    }
+        console.error('チャット通信エラー:', error);
+        loadingBubble.remove();
 
-    textChatArea.scrollTop = textChatArea.scrollHeight;
+        const errorBubble = createChatBubble(
+            'ai error',
+            '通信エラーが発生しました。接続を確認してもう一度お試しください。'
+        );
+        textChatArea.appendChild(errorBubble);
+    } finally {
+        // 完了・エラーにかかわらず必ずボタンを元に戻す
+        setChatDisabled(false);
+        textChatArea.scrollTop = textChatArea.scrollHeight;
+        chatInput.focus();
+    }
 }
 
 // 送信ボタン
@@ -155,7 +368,6 @@ chatInput.addEventListener('keydown', event => {
         sendMessage();
     }
 });
-
 
 /* =========================================================
    ④ 回覧板データの保存・読み込み
