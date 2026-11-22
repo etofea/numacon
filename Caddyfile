@@ -1,0 +1,13 @@
+#とりあえず、80番に来たものを全部受け取るだけ
+:80 {
+  handle /api/* {
+    reverse_proxy backend:8080
+  }
+  
+  #それ以外はHTMLなどのファイルを返す
+  handle {
+    root * /srv
+	try_files {path} {path}.html
+	file_server
+  }
+}
