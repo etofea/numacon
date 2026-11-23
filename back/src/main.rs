@@ -1,18 +1,18 @@
 use axum::{
     Json, Router, extract::{
         Multipart, Path, State, multipart
-    }, http::StatusCode, response::{
+    }, http::StatusCode, middleware::IntoMapRequestResult, response::{
         IntoResponse, sse::{
             Event,
             KeepAlive,
             Sse
         },
-    }, routing::post,
+    }, routing::{delete, post},
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::{
-    convert::Infallible, fmt::format, net::SocketAddr, option, string, sync::{
+    convert::Infallible, fmt::format, net::SocketAddr, option, path, string, sync::{
         Arc, Mutex, atomic::{
             AtomicI64,
             Ordering
@@ -153,6 +153,7 @@ async fn create_doc_handler(
             _ => {}
         }
     }
+    println!("schedule: {}", schedule);
 
     if title.is_empty() || category.is_empty() {
         println!("BAD REQUEST: title or category are empty.");
@@ -186,7 +187,23 @@ async fn list_doc_handler(State(state): State<appState>) -> Json<docListRes> {
     Json(docListRes { docs })
 }
 
-//TODO 資料削除
+//INFO 4. DELETE /api/admin/docs/{id}: 資料の削除
+async fn delete_doc_handler(
+    State(state): State<appState>,
+    Path(id): Path<i64>
+) -> impl IntoResponse {
+    let mut docs = state.docs.lock().unwrap();
+    let initial_len = docs.len();
+    docs.retain(|doc| doc.id != id);
+
+    if docs.len() < initial_len {
+        println!("delete docs successfully: Id {}", id);
+        StatusCode::NO_CONTENT
+    } else {
+        println!("docs not found");
+        StatusCode::NOT_FOUND
+    }
+}
 
 #[tokio::main]
 
@@ -202,7 +219,8 @@ async fn main() {
 
     //TODO
     let admin_routes = Router::new()
-        .route("/docs", post(create_doc_handler).get(list_doc_handler));
+        .route("/docs", post(create_doc_handler).get(list_doc_handler))
+        .route("/docs/{id}", delete(delete_doc_handler));
 
     let app = Router::new()
         .route("/api/chat", post(chat_handler))
