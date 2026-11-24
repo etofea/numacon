@@ -108,11 +108,17 @@ docForm.addEventListener('submit', async (e) => {
     formData.append('title', document.getElementById('docTitle').value.trim());
     formData.append('category', document.getElementById('docCategory').value);
     formData.append('content', document.getElementById('docContent').value.trim());
+    formData.append('schedule', document.getElementById('docSchedule').value);
+    formData.append('publish', document.getElementById('docPublish').value);
     if (file) {
         formData.append('file', file);
     }
-    formData.append('schedule', document.getElementById('docSchedule').value);
-    formData.append('publish', document.getElementById('docPublish').value);
+
+    // backend debug
+  console.log("formData check");
+  for (let [key, value] of formData.entries()) {
+    console.log(`js send: ${key}:`, value);
+  }
 
     // 送信中に二重押しされないようボタンを無効化する
     docSubmitBtn.disabled = true;
