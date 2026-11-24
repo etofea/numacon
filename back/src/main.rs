@@ -1,3 +1,5 @@
+mod pdf_to_md;
+
 use axum::{
     Json, Router, extract::{
         Multipart, Path, State, multipart
