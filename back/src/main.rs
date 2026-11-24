@@ -1,6 +1,8 @@
+mod sqlite;
+
 use axum::{
     Json, Router, extract::{
-        Multipart, Path, State, multipart
+        Multipart, Path, State, multipart, DefaultBodyLimit
     }, http::StatusCode, middleware::IntoMapRequestResult, response::{
         IntoResponse, sse::{
             Event,
@@ -13,15 +15,14 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::{
     convert::Infallible, fmt::format, net::SocketAddr, option, path, string, sync::{
-        Arc, Mutex, atomic::{
-            AtomicI64,
-            Ordering
-        },
+        Arc,
     }, time::Duration,
 };
 use tokio::sync::{self, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tower_http::cors::CorsLayer;
+use sqlx::{SqlitePool, pool};
+use sqlite::DocRecord;
 
 //INFO 構造体定義
 
@@ -43,23 +44,9 @@ struct sourceItem {
     url: String,
 }
 
-#[derive(Serialize, Clone)]
-struct  docItem {
-    id: i64,
-    title: String,
-    category: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    file_name: Option<String>,
-    schedule: String,
-    publish: String,
-    status: String, // status振り分け pending | processing | done | failed
-    error_message: Option<String>,
-    created_at: String,
-}
-
 #[derive(Serialize)]
 struct docListRes {
-    docs: Vec<docItem>,
+    docs: Vec<DocRecord>,
 }
 
 #[derive(Serialize)]
@@ -75,8 +62,7 @@ struct DocCreateRes {
 
 #[derive(Clone)]
 struct appState {
-    next_id: Arc<AtomicI64>,
-    docs: Arc<Mutex<Vec<docItem>>>
+    db: SqlitePool,
 }
 
 //INFO 1. POST /api/chat: sse straming
@@ -110,7 +96,7 @@ async fn chat_handler(Json(payload): Json<chatReq>,) -> Sse<ReceiverStream<Resul
         let sources_json = serde_json::to_string(&SourcesData {
             sources: vec![sourceItem {
                 doc_id: 1, // FIXME
-                title: "fuckoff.pdf".to_string(),
+                title: "testsheet.pdf".to_string(),
                 page: 1,
                 url: "/api/docs/1/file".to_string(),
             }],
@@ -135,20 +121,26 @@ async fn create_doc_handler(
     let mut title = String::new();
     let mut category = String::new();
     let mut schedule = String::new();
+    let mut content: Option<String> = None;
     let mut publish = String::new();
     let mut file_name: Option<String> = None;
 
-    while let Ok(Some(filed)) = multipart.next_field().await {
+    // 入力された情報の登録
+    while let Ok(Some(mut filed)) = multipart.next_field().await {
         let name = filed.name().unwrap_or("").to_string();
+        println!("string: {}", name);
         match name.as_str() {
-            "title" => title = filed.text().await.unwrap_or_default(),
-            "category" => category = filed.text().await.unwrap_or_default(),
             "schedule" => schedule = filed.text().await.unwrap_or_default(),
             "publish" => publish = filed.text().await.unwrap_or_default(),
+            "title" => title = filed.text().await.unwrap_or_default(),
+            "category" => category = filed.text().await.unwrap_or_default(),
+            "content" => content = Some(filed.text().await.unwrap_or_default()),
             "file" => {
                 if let Some(fname) = filed.file_name() {
                     file_name = Some(fname.to_string());
                 }
+                //TODO サイズ制限?
+                while let Ok(Some(_chunk)) = filed.chunk().await {} //INFO ファイルを最後まで読み切る(速度低下？)
             }
             _ => {}
         }
@@ -160,31 +152,38 @@ async fn create_doc_handler(
         return  Err(StatusCode::BAD_REQUEST);
     }
 
-    let new_id = state.next_id.fetch_add(1, Ordering::SeqCst);
-    let now = Utc::now().to_rfc3339();
-
-    let new_doc = docItem {
-        id: new_id,
-        title,
-        category,
-        file_name,
-        schedule,
-        publish,
-        status: "pending".to_string(),
-        error_message: None,
-        created_at: now,
-    };
-
-    state.docs.lock().unwrap().push(new_doc);
+    let new_id = sqlite::insert_doc(
+        &state.db, 
+        &title,
+        &category,
+        content.as_deref(),
+        file_name.as_deref(),
+        &schedule,
+        &publish
+    )
+    .await
+    // error出力
+    .map_err(|e| {
+        println!("database insert error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
     println!("registration complete!: iD {}", new_id);
 
     Ok(Json(DocCreateRes { id: new_id, status: "pending".to_string(), }))
 }
 
 //INFO 3. GET /api/admin/docs: 資料一覧の取得
-async fn list_doc_handler(State(state): State<appState>) -> Json<docListRes> {
-    let docs = state.docs.lock().unwrap().clone();
-    Json(docListRes { docs })
+async fn list_doc_handler(
+    State(state): State<appState>
+) -> Result<Json<docListRes>, StatusCode>{
+    let docs = sqlite::get_all_docs(&state.db)
+        .await
+    .map_err(|e| { // error出力
+        println!("database fetch error :{}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    Ok(Json(docListRes { docs }))
 }
 
 //INFO 4. DELETE /api/admin/docs/{id}: 資料の削除
@@ -192,32 +191,35 @@ async fn delete_doc_handler(
     State(state): State<appState>,
     Path(id): Path<i64>
 ) -> impl IntoResponse {
-    let mut docs = state.docs.lock().unwrap();
-    let initial_len = docs.len();
-    docs.retain(|doc| doc.id != id);
-
-    if docs.len() < initial_len {
-        println!("delete docs successfully: Id {}", id);
-        StatusCode::NO_CONTENT
-    } else {
-        println!("docs not found");
-        StatusCode::NOT_FOUND
+    match sqlite::delete_doc(&state.db, id).await {
+        Ok(true) => {
+            println!("delete docs successfully: id {}", id);
+            StatusCode::NO_CONTENT
+        }
+        Ok(false) => {
+            println!("fucking docs not found: id {}", id);
+            StatusCode::NOT_FOUND
+        }
+        Err(e) => {
+            println!("fuckig database delete error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     }
 }
 
 #[tokio::main]
 
 async fn main() {
-    let state = appState {
-        next_id: Arc::new(
-            AtomicI64::new(1)
-        ),
-        docs: Arc::new(Mutex::new(
-            Vec::new()
-        )),
-    };
 
-    //TODO
+    let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "./data".to_string()); // 
+    let db_url = format!("sqlite:{}/numacon.db", data_dir); // data baseに
+
+    let pool = sqlite::init_db(&db_url)
+        .await
+        .expect("failed to initialize sqlite database");
+
+    let state = appState {db: pool};
+    
     let admin_routes = Router::new()
         .route("/docs", post(create_doc_handler).get(list_doc_handler))
         .route("/docs/{id}", delete(delete_doc_handler));
