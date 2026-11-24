@@ -1,3 +1,4 @@
 front/__pycache__
 skills/
 back/target
+.env

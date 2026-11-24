@@ -1,32 +1,74 @@
 services:
-  front:
-    build:
-      context: ./front
-      dockerfile: Dockerfile
+  qdrant:
+    image: qdrant/qdrant:v1.15.0
+    ports:  #最終的にはリバースプロキシのみを公開するため、caddy以外はportの設定を削除しておく
+     - "6333:6333"  #ダッシュボードで見れるようにする
+     - "6334:6334"  #手元のcargo runから使えるようにする
+    volumes:
+       - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  ollama:
+    profiles: ["ai"]
+    image: ollama/ollama:0.40.15
     ports:
-      - "5000:5000"
+      - "11434:11434" #開発中に利用する。本番では削除。
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+    deploy: #GPUを使わせる設定
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+  
+  docling:
+    profiles: ["ai"]
+    image: quay.io/docling-project/docling-serve-cpu:v1.38.1
+    ports:
+      - "5001:5001"  #開発中に利用する。本番では削除。
     environment:
-      - BACKEND_URL=http://backend:8080
+      DOCLING_SERVE_ENABLE_UI: "1" #ブラウザで試せるようにする設定
+    restart: unless-stopped
+    
+  caddy:
+    image: caddy:2.11.7
+    environment:
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+    ports:
+      - "80:80"
+    volumes: 
+    #front/ を丸ごと見せるとよくないので、HTML とstatic だけ見せる
+      - ./Caddyfile:/etc/caddy/Caddyfile 
+      - ./front/templates:/srv
+      - ./front/static:/srv/static
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - backend
-
-  # caddy未実装のためコメントアウト
-  # caddy:
-  #   image: caddy_latest
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./caddy/Caddyfile:/etc/caddy/Caddyfile # 要調整
-  #     - caddy_data:/data # 要調整
-  #   depends_on:
-  #     - backend
+    restart: unless-stopped
 
   backend:
     build:
-      context: ./back
-      dockerfile: Dockerfile
+      context: ./back 
     ports:
-      - "2000:2000"
-    # volumes:
-    #   - ./back:/app
+      - "8080:8080"  #開発中に利用する。本番では削除。
+    environment:
+      QDRANT_URL: http://qdrant:6334
+      OLLAMA_URL: http://ollama:11434
+      DOCLING_URL: http://docling:5001
+      DATA_DIR: /data  # SQLiteのDBのファイルや職員がアップロードした元のPDFなど消えてはいけないものが入る予定、名前は書き換えてもおｋ
+    volumes:
+      - app_data:/data
+    depends_on:
+      - qdrant   
+  
+volumes:
+  app_data:
+  qdrant_data:
+  ollama_models:
+  caddy_data:
+  caddy_config:

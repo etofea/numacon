@@ -1,0 +1,25 @@
+#とりあえず、80番に来たものを全部受け取るだけ
+:80 {
+  #偽の職員名を弾く
+  request_header -X-Remote-User
+  
+  #職員用のURLにログインをかける
+  @admin path /admin /admin/* /api/admin/*
+  basic_auth @admin {
+   {$ADMIN_USER} {$ADMIN_PASSWORD_HASH}
+  }
+  
+  handle /api/* {
+  reverse_proxy backend:8080 {
+    #ログインした職員名をbackendに渡す
+    header_up X-Remote-User {http.auth.user.id}
+    }
+  }
+  
+  #それ以外はHTMLなどのファイルを返す
+  handle {
+    root * /srv
+	  try_files {path} {path}.html
+	  file_server
+  }
+}
