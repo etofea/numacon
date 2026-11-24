@@ -222,7 +222,8 @@ async fn main() {
     
     let admin_routes = Router::new()
         .route("/docs", post(create_doc_handler).get(list_doc_handler))
-        .route("/docs/{id}", delete(delete_doc_handler));
+        .route("/docs/{id}", delete(delete_doc_handler))
+        .layer(DefaultBodyLimit::max(20 * 1024 * 1024));
 
     let app = Router::new()
         .route("/api/chat", post(chat_handler))
