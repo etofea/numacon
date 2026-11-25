@@ -16,4 +16,4 @@ anyhow = "1.0"
 pdf-extract = "0.7"
 
 # sqlite
-sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate"] }

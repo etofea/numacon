@@ -39,24 +39,9 @@ pub async fn init_db(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
         )
         .await?;
 
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS documents (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            title           TEXT NOT NULL,
-            category        TEXT NOT NULL,
-            content         TEXT,
-            file_name       TEXT,
-            schedule        TEXT,
-            publish         TEXT,
-            status          TEXT NOT NULL DEFAULT 'pending',
-            error_message   TEXT,
-            created_at      TEXT NOT NULL
-        );
-        "#,
-    )
-    .execute(&pool)
-    .await?;
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await?;
 
     println!("initialized SQLite database: {}", database_url);
     Ok(pool)
