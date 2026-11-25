@@ -1,6 +1,9 @@
 mod pdf_to_md;
 mod sqlite;
 mod chunker;
+mod embedding;
+mod qdrant;
+
 
 use axum::{
     Json, Router, extract::{
