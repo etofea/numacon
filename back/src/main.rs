@@ -28,17 +28,22 @@ use sqlite::DocRecord;
 
 //INFO 構造体定義
 
+// [deserialize] json -> struct構造体
 #[derive(Deserialize)]
+// POST /api/chatに送信されるjson形式をrust構造体に変換
 struct chatReq {
     message: String,
 }
 
+// [serialize] struct構造体 -> json
 #[derive(Serialize)]
+// sseを採用した時のストリーミングで送信する1tok分のデータ
 struct chunkData {
     text: String,
 }
 
 #[derive(Serialize)]
+// 解答の根拠となった資料１件分の情報
 struct sourceItem {
     doc_id: i64,
     title: String,
@@ -47,28 +52,35 @@ struct sourceItem {
 }
 
 #[derive(Serialize)]
+// 資料一覧登録APIの応答
 struct docListRes {
     docs: Vec<DocRecord>,
 }
 
 #[derive(Serialize)]
+// 根拠資料のリスト
 struct SourcesData {
     sources: Vec<sourceItem>,
 }
 
 #[derive(Serialize)]
+// 資料登録時の応答 <- POSt /api/admin/docs
 struct DocCreateRes {
     id: i64,
     status: String,
 }
 
 #[derive(Clone)]
+//アプリケーションの状態
 struct appState {
     db: SqlitePool,
 }
 
 //INFO 1. POST /api/chat: sse straming
-async fn chat_handler(Json(payload): Json<chatReq>,) -> Sse<ReceiverStream<Result<Event, Infallible>>> {
+async fn chat_handler(
+    State(state): State<appState>,
+    Json(payload): Json<chatReq>
+) -> Sse<ReceiverStream<Result<Event, Infallible>>> {
     let (tx, rx) = mpsc::channel(20);
 
     tokio::spawn(async move {
@@ -94,14 +106,21 @@ async fn chat_handler(Json(payload): Json<chatReq>,) -> Sse<ReceiverStream<Resul
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
 
+        let all_docs = sqlite::get_all_docs(&state.db).await.unwrap_or_default(); // sqliteから資料のリストを取得
+        let source_items: Vec<sourceItem> = all_docs
+            .into_iter()
+            .min_by_key(|doc| doc.id) // IDが一番小さいものを抽出
+            .map(|doc| vec![sourceItem {
+                doc_id: doc.id,
+                title: doc.title,
+                page: 314,
+                url: format!("/api/docs/{}/file", doc.id),
+            }])
+            .unwrap_or_default(); // 該当がない場合はNULL
+
         // sources event
         let sources_json = serde_json::to_string(&SourcesData {
-            sources: vec![sourceItem {
-                doc_id: 1, // FIXME
-                title: "testsheet.pdf".to_string(),
-                page: 1,
-                url: "/api/docs/1/file".to_string(),
-            }],
+            sources: source_items
         })
         .unwrap();
         let sources_event = Event::default().event("sources").data(sources_json);
@@ -213,8 +232,8 @@ async fn delete_doc_handler(
 
 async fn main() {
 
-    let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "./data".to_string()); // 
-    let db_url = format!("sqlite:{}/numacon.db", data_dir); // data baseに
+    let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "./data".to_string());
+    let db_url = format!("sqlite:{}/numacon.db", data_dir); // db場所の定義
 
     let pool = sqlite::init_db(&db_url)
         .await
@@ -228,7 +247,7 @@ async fn main() {
         .layer(DefaultBodyLimit::max(20 * 1024 * 1024));
 
     let app = Router::new()
-        .route("/api/chat", post(chat_handler))
+        .route("/api/chat", post(chat_handler)) // FIXME
         .nest("/api/admin", admin_routes)
         .with_state(state)
         .layer(CorsLayer::permissive());
