@@ -277,6 +277,14 @@ const cancelEditBtn = document.getElementById('cancelEditBtn');
 const adminFormHeading = document.getElementById('adminFormHeading');
 const adminNoticeList = document.getElementById('adminNoticeList');
 
+function getTodayString() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 // 選択・縮小された画像データを一時的に入れる変数
 let currentPhoto = '';
 
@@ -307,6 +315,7 @@ function saveNotices() {
 function resetNoticeForm() {
     noticeForm.reset();
     noticeId.value = '';
+    noticePublishInput.value = getTodayString();
     currentPhoto = '';
     photoPreview.removeAttribute('src');
     photoPreviewArea.style.display = 'none';
@@ -377,14 +386,15 @@ noticeForm.addEventListener('submit', (e) => {
     const content = noticeContentInput.value.trim();
     if (!title || !content) return;
 
-    const editingId = noticeId.value;
-    const prev = [...notices];// 保存失敗時に元に戻せるようバックアップ
+const editingId = noticeId.value;
+    const prev = [...notices]; // 保存失敗時に元に戻せるようバックアップ
+    const publish = noticePublishInput.value || getTodayString();
 
     if (editingId) {
         // 【編集モード】すでに存在するデータを上書き更新する
         const idx = notices.findIndex(n => n.id === editingId);
         if (idx !== -1) {
-            notices[idx] = { ...notices[idx], type: noticeType.value, title, content, photo: currentPhoto };
+            notices[idx] = { ...notices[idx], type: noticeType.value, title, content, publish, photo: currentPhoto };
         }
     } else {
         // 【新規追加モード】新しいデータを配列の先頭に追加する
@@ -393,10 +403,10 @@ noticeForm.addEventListener('submit', (e) => {
             type: noticeType.value,
             title,
             content,
+            publish,
             photo: currentPhoto
         });
     }
-
     // 保存に失敗したらデータを元に戻して中断
     if (!saveNotices()) {
         notices = prev;
@@ -440,6 +450,7 @@ function renderAdminNotices() {
             noticeType.value = notice.type;
             noticeTitleInput.value = notice.title;
             noticeContentInput.value = notice.content;
+            noticePublishInput.value = notice.publish || getTodayString();
             currentPhoto = notice.photo || '';
             noticePhotoInput.value = '';
 
@@ -483,4 +494,5 @@ function renderAdminNotices() {
 // =========================================================
 // 画面を開いた瞬間に、保存済みの回覧板を一覧に表示する
 
+noticePublishInput.value = getTodayString();
 renderAdminNotices();

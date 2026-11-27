@@ -458,38 +458,56 @@ function saveNotices() {
 
 /* =========================================================
    ⑤ 回覧板一覧の表示
-   ホーム画面には先頭3件、一覧画面には全件表示
+   カード型UI（バッジ＋日付・タイトル・本文抜粋）＆絞り込み対応
 ========================================================= */
 
-// 回覧板の表示要素を作成する
+let currentNoticeFilter = 'all';
+
+function formatNoticeDate(notice) {
+    const rawDate = notice.date || notice.createdAt || notice.publish;
+    if (!rawDate) return '';
+    const d = new Date(rawDate);
+    if (Number.isNaN(d.getTime())) return rawDate;
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 function createNoticeItem(notice) {
     const item = document.createElement('div');
-
-    item.className = 'notice-item clickable';
+    item.className = 'notice-card clickable';
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
     item.dataset.noticeId = notice.id;
 
-    // 種類
+    const metaRow = document.createElement('div');
+    metaRow.className = 'notice-card-meta';
+
     const badge = document.createElement('span');
-
-    badge.className = 'badge';
+    badge.className = notice.type === 'イベント' ? 'badge badge-event' : 'badge badge-info';
     badge.textContent = notice.type;
+    metaRow.appendChild(badge);
 
-    // タイトル
-    const title = document.createElement('span');
+    const dateText = formatNoticeDate(notice);
+    if (dateText) {
+        const dateEl = document.createElement('span');
+        dateEl.className = 'notice-card-date';
+        dateEl.textContent = dateText;
+        metaRow.appendChild(dateEl);
+    }
 
-    title.className = 'notice-title';
+    const title = document.createElement('h3');
+    title.className = 'notice-card-title';
     title.textContent = notice.title;
 
-    item.append(badge, title);
+    const excerpt = document.createElement('p');
+    excerpt.className = 'notice-card-excerpt';
+    excerpt.textContent = notice.content || 'タップして詳細を確認してください。';
 
-    // クリックして詳細を開く
+    item.append(metaRow, title, excerpt);
+
     item.addEventListener('click', () => {
         openNoticeDetail(notice.id);
     });
 
-    // キーボードでも開けるようにする
     item.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -500,48 +518,51 @@ function createNoticeItem(notice) {
     return item;
 }
 
-// ホーム画面と一覧画面を更新する
 function renderNotices() {
-    const homeList = document.querySelector(
-        '#homeScreen .notice-list'
-    );
+    const homeList = document.querySelector('#homeScreen .notice-list');
+    const fullList = document.querySelector('#noticeListScreen .notice-list');
 
-    const fullList = document.querySelector(
-        '#noticeListScreen .notice-list'
-    );
-
-    // ホーム画面
     if (homeList) {
         homeList.replaceChildren();
-
-        notices.slice(0, 3).forEach(notice => {
-            homeList.appendChild(
-                createNoticeItem(notice)
-            );
-        });
-    }
-
-    // 回覧板一覧画面
-    if (fullList) {
-        fullList.replaceChildren();
-
         if (notices.length === 0) {
             const emptyMessage = document.createElement('p');
-
             emptyMessage.className = 'empty-message';
-            emptyMessage.textContent =
-                '現在、回覧板はありません。';
+            emptyMessage.textContent = '現在、回覧板はありません。';
+            homeList.appendChild(emptyMessage);
+        } else {
+            notices.slice(0, 3).forEach(notice => {
+                homeList.appendChild(createNoticeItem(notice));
+            });
+        }
+    }
 
+    if (fullList) {
+        fullList.replaceChildren();
+        const filtered = currentNoticeFilter === 'all'
+            ? notices
+            : notices.filter(n => n.type === currentNoticeFilter);
+
+        if (filtered.length === 0) {
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'empty-message';
+            emptyMessage.textContent = '該当する回覧板はありません。';
             fullList.appendChild(emptyMessage);
         } else {
-            notices.forEach(notice => {
-                fullList.appendChild(
-                    createNoticeItem(notice)
-                );
+            filtered.forEach(notice => {
+                fullList.appendChild(createNoticeItem(notice));
             });
         }
     }
 }
+
+document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentNoticeFilter = tab.dataset.filter;
+        renderNotices();
+    });
+});
 
 
 /* =========================================================
@@ -568,6 +589,9 @@ function openNoticeDetail(id) {
 
     // 種類・タイトル・本文
     detailBadge.textContent = notice.type;
+    detailBadge.className = notice.type === 'イベント' ? 'badge badge-event' : 'badge badge-info';
+    const detailDate = document.getElementById('detailDate');
+    if (detailDate) detailDate.textContent = formatNoticeDate(notice);
     detailTitle.textContent = notice.title;
     detailContent.textContent = notice.content;
 
@@ -595,3 +619,46 @@ noticeDetailBackBtn.addEventListener('click', () => {
 ========================================================= */
 
 renderNotices();
+
+/* =========================================================
+   添付画像・PDFタップ拡大 ＆ マイクぼわぼわ切り替え
+========================================================= */
+
+// ① 回覧板詳細の画像・PDFをタップしたら拡大（PDFなら別タブ）で開く
+const detailPhotoEl = document.getElementById('detailPhoto');
+const imageModal = document.getElementById('imageModal');
+const modalImage = document.getElementById('modalImage');
+const closeImageModal = document.getElementById('closeImageModal');
+
+if (detailPhotoEl && imageModal && modalImage) {
+    detailPhotoEl.addEventListener('click', () => {
+        const src = detailPhotoEl.getAttribute('src');
+        if (!src) return;
+
+        if (src.startsWith('data:application/pdf') || src.toLowerCase().endsWith('.pdf')) {
+            window.open(src, '_blank', 'noopener');
+            return;
+        }
+
+        modalImage.src = src;
+        imageModal.style.display = 'flex';
+    });
+
+    const closeModal = () => {
+        imageModal.style.display = 'none';
+        modalImage.removeAttribute('src');
+    };
+
+    if (closeImageModal) closeImageModal.addEventListener('click', closeModal);
+    imageModal.addEventListener('click', (e) => {
+        if (e.target === imageModal) closeModal();
+    });
+}
+
+// ② 音声検索のマイクボタンをタップしたら「ぼわぼわ」をON/OFF
+const voiceMicButton = document.querySelector('.mic-button-active');
+if (voiceMicButton) {
+    voiceMicButton.addEventListener('click', () => {
+        voiceMicButton.classList.toggle('listening');
+    });
+}

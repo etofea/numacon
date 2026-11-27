@@ -113,10 +113,18 @@
                         <label for="noticeContentInput">本文</label>
                         <textarea id="noticeContentInput" rows="6" placeholder="お知らせの内容を入力" required></textarea>
 
-                        <label for="noticePhotoInput">写真（任意・最大8MB）</label>
-                        <input type="file" id="noticePhotoInput" accept="image/*">
-                        <p class="admin-help">写真はなくても登録できます。</p>
-
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="noticePhotoInput">写真（任意・最大8MB）</label>
+                                <input type="file" id="noticePhotoInput" accept="image/*">
+                                <p class="admin-help">写真はなくても登録できます。</p>
+                            </div>
+                            <div class="form-col" style="max-width: 260px;">
+                                <label for="noticePublishInput">公開日</label>
+                                <input type="date" id="noticePublishInput" class="pc-date-input" required>
+                            </div>
+                        </div>
+                        
                         <div id="photoPreviewArea" class="photo-preview-area" style="display: none;">
                             <img id="photoPreview" alt="写真のプレビュー">
                             <button type="button" id="removePhotoBtn">写真を外す</button>

@@ -40,17 +40,17 @@
 
     <main class="container">
 
+        <!-- ロゴ・町名（全画面共通で一番上に固定） -->
+        <header class="logo-area global-logo-header">
+            <span class="town-name">北海道沼田町</span>
+            <img src="/static/images/logo.png" alt="ぬまコン" class="logo-img">
+            <span class="sub-title">沼田町の「知りたい」が<br>すぐ見つかる</span>
+        </header>
+
         <!-- =================================================
              ④ ホーム画面
         ================================================== -->
         <section id="homeScreen">
-
-            <!-- ロゴ・町名 -->
-            <header class="logo-area">
-                <span class="town-name">北海道沼田町</span>
-                <img src="/static/images/logo.png" alt="ぬまコン" class="logo-img">
-                <span class="sub-title">沼田町の「知りたい」が<br>すぐ見つかる</span>
-            </header>
 
             <!-- 検索方法の案内 -->
             <div class="instructions">
@@ -87,19 +87,15 @@
 
             <!-- 回覧板・お知らせ -->
             <section class="notice-board">
-
-                <h2>回覧板</h2>
-
-                <!-- JavaScriptで登録済みの回覧板を表示/登録なし -->
-                <div class="notice-list"></div>
-
-                <!-- 回覧板一覧画面へのリンク -->
-                <div class="notice-bottom">
-                    <a href="#" id="noticeListBtn">
-                        一覧をみる ＞
+                <div class="notice-board-header">
+                    <h2>回覧板</h2>
+                    <a href="#" id="noticeListBtn" class="notice-all-link">
+                        一覧を見る →
                     </a>
                 </div>
 
+                <!-- JavaScriptでカード型の回覧板を表示 -->
+                <div class="notice-list"></div>
             </section>
 
         </section>
@@ -257,15 +253,21 @@
 
             <!-- 回覧板一覧 -->
             <div class="content-area">
-
-                <div class="notice-board">
-
-                    <h2>お知らせ・イベント</h2>
-                    <div class="notice-list">
+                <div class="notice-board-list-page">
+                    <div class="notice-list-intro">
+                        <h2>お知らせ・イベント</h2>
+                        <p>気になるカードを選ぶと、詳しい内容を確認できます。</p>
                     </div>
 
-                </div>
+                    <!-- カテゴリー絞り込みタブ -->
+                    <div class="notice-filter-tabs" role="tablist">
+                        <button type="button" class="filter-tab active" data-filter="all">すべて</button>
+                        <button type="button" class="filter-tab" data-filter="お知らせ">お知らせ</button>
+                        <button type="button" class="filter-tab" data-filter="イベント">イベント</button>
+                    </div>
 
+                    <div class="notice-list"></div>
+                </div>
             </div>
 
         </section>
@@ -276,11 +278,11 @@
         ================================================== -->
         <section
             id="noticeDetailScreen"
-            class="sub-screen"
+            class="sub-screen notice-detail-screen"
             style="display: none;"
         >
 
-            <!-- 画面上部 -->
+            <!-- 画面上部（従来の青いヘッダーそのまま） -->
             <header class="chat-header">
 
                 <button
@@ -295,49 +297,50 @@
 
             </header>
 
-            <!-- 詳細内容 -->
-            <div class="content-area detail-area">
+            <!-- 詳細内容（カード型UI） -->
+            <div class="content-area notice-detail-page">
+                <article class="notice-detail-card">
+                    <div class="notice-card-meta">
+                        <span id="detailBadge" class="badge badge-info">
+                            お知らせ
+                        </span>
+                        <span id="detailDate" class="notice-card-date"></span>
+                    </div>
 
-                <span
-                    id="detailBadge"
-                    class="badge"
-                >
-                    お知らせ
-                </span>
+                    <h3 id="detailTitle" class="notice-detail-title">
+                        タイトル
+                    </h3>
 
-                <h3 id="detailTitle">
-                    タイトル
-                </h3>
+                    <hr class="notice-detail-divider">
 
-                <p
-                    id="detailContent"
-                    class="detail-text"
-                >
-                    本文
-                </p>
+                    <p id="detailContent" class="notice-detail-content">
+                        本文
+                    </p>
 
-                <!-- 写真が登録されている場合のみ表示 -->
-                <div
-                    id="detailPhotoArea"
-                    class="detail-photo-area"
-                    style="display: none;"
-                >
-                    <img
-                        id="detailPhoto"
-                        alt="回覧板の写真"
+                    <!-- 写真が登録されている場合のみ表示 -->
+                    <div
+                        id="detailPhotoArea"
+                        class="detail-photo-area"
+                        style="display: none;"
                     >
-                </div>
-
+                        <img
+                            id="detailPhoto"
+                            alt="回覧板の写真"
+                        >
+                    </div>
+                </article>
             </div>
 
         </section>
 
     </main>
 
+    <!-- 回覧板の添付画像タップ拡大用モーダル -->
+    <div id="imageModal" class="image-modal" style="display: none;">
+        <button type="button" id="closeImageModal" class="image-modal-close">× 閉じる</button>
+        <img id="modalImage" alt="拡大画像">
+    </div>
 
-    <!-- =====================================================
-         ⑩ JavaScriptファイルの読み込み
-    ====================================================== -->
     <script src="/static/script.js"></script>
 
 </body>
