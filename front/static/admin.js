@@ -108,9 +108,10 @@ docForm.addEventListener('submit', async (e) => {
     formData.append('title', document.getElementById('docTitle').value.trim());
     formData.append('category', document.getElementById('docCategory').value);
     formData.append('content', document.getElementById('docContent').value.trim());
-    if (file) {
+        if (file) {
         formData.append('file', file);
     }
+
     formData.append('schedule', document.getElementById('docSchedule').value);
     formData.append('publish', document.getElementById('docPublish').value);
 
